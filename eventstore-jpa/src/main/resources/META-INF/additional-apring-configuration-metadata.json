@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "restbucks.eventstore.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enables or disables the JPAEventStore."
+    }
+  ]
+}
