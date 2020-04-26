@@ -1,0 +1,65 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.hive.eventstore.configuration.MyBatisEventRepository">
+
+    <resultMap id="EventResultMap" type="org.hive.eventstore.event.EventDTO">
+        <id property="eventID" column="domainEventID"/>
+        <result property="type" column="domainEventType"/>
+        <result property="payload" column="domainEventPayload"/>
+        <collection property="attributes" ofType="org.hive.eventstore.event.AttributeDTO" javaType="ArrayList" column="eventAttributeName">
+            <result property="name" column="eventAttributeName"/>
+            <result property="value" column="eventAttributeValue"/>
+            <result property="type" column="eventAttributeType"/>
+        </collection>
+    </resultMap>
+
+    <select id="findEventsWithMetadata" resultMap="EventResultMap">
+        SELECT
+            de.EventID as domainEventID,
+            de.Type as domainEventType,
+            de.Payload as domainEventPayload,
+            ea.Name as eventAttributeName,
+            ea.Value as eventAttributeValue,
+            ea.Type as eventAttributeType
+        FROM DOMAINEVENT de
+        LEFT OUTER JOIN EVENTATTRIBUTE ea ON ea.EventID = de.EventID
+        WHERE de.EventID IN (
+            SELECT de.EventID
+            FROM DOMAINEVENT de
+            INNER JOIN EVENTATTRIBUTE ea ON ea.EventID = de.EventID
+            <foreach collection="metadata" index="key" item="value" open="WHERE (" separator=") OR (" close=")">
+                ea.Name = #{key} and ea.VALUE = #{value}
+            </foreach>
+            GROUP BY de.EventID
+            HAVING COUNT(*) = #{match}
+        )
+    </select>
+
+    <select id="findEventsByStreamId" resultMap="EventResultMap">
+        SELECT
+            de.EventID as domainEventID,
+            de.Type as domainEventType,
+            de.Payload as domainEventPayload,
+            ea.Name as eventAttributeName,
+            ea.Value as eventAttributeValue,
+            ea.Type as eventAttributeType
+        FROM DOMAINEVENT de
+        LEFT OUTER JOIN EVENTATTRIBUTE ea ON ea.EventID = de.EventID
+        WHERE de.streamID = #{streamID}
+    </select>
+
+    <select id="findById" resultMap="EventResultMap" parameterType="java.lang.String">
+        SELECT
+            de.EventID as domainEventID,
+            de.Type as domainEventType,
+            de.Payload as domainEventPayload,
+            ea.Name as eventAttributeName,
+            ea.Value as eventAttributeValue,
+            ea.Type as eventAttributeType
+        FROM DOMAINEVENT de
+        LEFT OUTER JOIN EVENTATTRIBUTE ea ON ea.EventID = de.EventID
+        WHERE de.EventID = ?
+    </select>
+
+</mapper>
